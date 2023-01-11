@@ -4,7 +4,7 @@ PatchNoteFixed = "\tNone"
 PatchNoteAdded = "\tNone" 
 
 local response = false
-local localVersion = 5.35
+local localVersion = 5.36
 local currentVersion
 async_http.init("raw.githubusercontent.com", "/ViperOne1/Chalkscript/main/raw/version", function(output)
     currentVersion = tonumber(output)
@@ -2762,8 +2762,8 @@ end)
 --[[| Chalkscript/ |]]--
 menu.divider(MenuCredits, "--- MAIN DEVELOPERS ---")
 
-menu.action(MenuCredits, "ÃƒÆ’Ã‚ÂÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â°ÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â´ÃƒÆ’Ã¢â‚¬ËœÃƒâ€¦Ã‚Â½ÃƒÆ’Ã‚ÂÃƒâ€šÃ‚ÂºÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â°#3642", {"cscreditsviper"}, "This is Me, and I did Everything, from Scratch.", function(on_click)
-    util.toast("- ÃƒÆ’Ã‚ÂÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â°ÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â´ÃƒÆ’Ã¢â‚¬ËœÃƒâ€¦Ã‚Â½ÃƒÆ’Ã‚ÂÃƒâ€šÃ‚ÂºÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â°#3642 -\n\nThis is Me, and I did Legit Everything, from Scratch.")
+menu.action(MenuCredits, "Гадюка#3642", {"cscreditsviper"}, "This is Me, and I did Everything, from Scratch.", function(on_click)
+    util.toast("- Гадюка#3642 -\n\nThis is Me, and I did Everything, from Scratch.")
 end)
 
 menu.divider(MenuCredits, "--- GAVE IDEAS ---")
