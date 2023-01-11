@@ -1,9 +1,36 @@
 util.require_natives("1663599433")
 
 PatchNoteFixed = "\tNone"
+PatchNoteAdded = "\tNone" 
 
-PatchNoteAdded = "\tFormatted Code" 
-
+local response = false
+local localVersion = 5.35
+local currentVersion
+async_http.init("raw.githubusercontent.com", "/ViperOne1/Chalkscript/main/raw/version", function(output)
+    currentVersion = tonumber(output)
+    response = true
+    if localVersion ~= currentVersion then
+        util.toast("-Chalkscript-\n\nThere is a New Version of Chalkscript Available!\nClick 'UPDATE' in Chalkscript's Root to Update it.")
+        menu.action(menu.my_root(), "UPDATE", {""}, "Update Chalkscript to the Latest Version Available", function(on_click)
+            async_http.init('raw.githubusercontent.com','/ViperOne1/Chalkscript/main/raw/Chalkscript-Raw.lua',function(contents)
+                local err = select(2,load(contents))
+                if err then
+                    util.toast("-Chalkscript-\n\nScript Failed to Download off Github.")
+                return end
+                local csLua = io.open(filesystem.scripts_dir()..SCRIPT_RELPATH, "wb")
+                csLua:write(contents)
+                csLua:close()
+                util.toast("-Chalkscript\n\nSuccessfully Installed Chalkscript.\nHave Fun!")
+                util.restart_script()
+            end)
+            async_http.dispatch()
+        end)
+    end
+end, function() response = true end) 
+async_http.dispatch()
+repeat 
+    util.yield()
+until response
 
 
 
