@@ -1,10 +1,10 @@
 util.require_natives("1663599433")
 
-PatchNoteFixed = "\tNone"
+PatchNoteFixed = "\tDisable Exclusive Vehicle when Deleting it."
 PatchNoteAdded = "\tNone" 
 
 local response = false
-local localVersion = 5.36
+local localVersion = 5.37
 local currentVersion
 async_http.init("raw.githubusercontent.com", "/ViperOne1/Chalkscript/main/raw/version", function(output)
     currentVersion = tonumber(output)
@@ -1631,12 +1631,12 @@ end)
 
 --[[| Vehicle/Main/PersonalVehicle/ |]]--
 exclusiveVehicle = 0
-menu.toggle(MenuVehPersonal, "Set Exclusive Vehicle", {"csvehicleexclusive"}, "Sets you as the Exclusive Driver of your Current Vehicle, making you the Only One able to Drive it.", function(on)
+local setExclusiveVehicleToggle = menu.toggle(MenuVehPersonal, "Set Exclusive Vehicle", {"csvehicleexclusive"}, "Sets you as the Exclusive Driver of your Current Vehicle, making you the Only One able to Drive it.", function(on)
     local localped = players.user_ped()
     if on then 
         VEHICLE.SET_VEHICLE_EXCLUSIVE_DRIVER(player_cur_car, localped, 1) 
         exclusiveVehicle = player_cur_car
-        util.toast("Successfully Set Current Vehicle as Exclusive Vehicle.")
+        util.toast("-Chalkscript-\n\nSuccessfully Set Current Vehicle as Exclusive Vehicle.")
         exclusiveVehBlip = HUD.ADD_BLIP_FOR_ENTITY(exclusiveVehicle)
         HUD.SET_BLIP_SPRITE(exclusiveVehBlip, 812) --Missle Icon ID
         HUD.SET_BLIP_COLOUR(exclusiveVehBlip, 29)
@@ -1655,7 +1655,7 @@ menu.toggle(MenuVehPersonal, "Set Exclusive Vehicle", {"csvehicleexclusive"}, "S
         VEHICLE.SET_VEHICLE_EXCLUSIVE_DRIVER(player_cur_car, localped, 0)
         util.remove_blip(exclusiveVehBlip)
         exclusiveVehicle = 0
-        util.toast("Successfully Removed Current Vehicle as Exclusive Vehicle.")
+        util.toast("-Chalkscript-\n\nSuccessfully Removed Current Vehicle as Exclusive Vehicle.")
     end
 end)
 
@@ -1674,6 +1674,7 @@ menu.action(MenuVehPersonal, "Delete Exclusive Vehicle", {'csvehicledeleteexclus
         util.toast("-Chalkscript-\n\nNo Exclusive Vehicle Currently set!\nYou can Set One using the 'Set Exclusive Driver' Command Above.")
     end
     util.remove_blip(exclusiveVehBlip)
+    menu.trigger_command(setExclusiveVehicleToggle, "off")
     entities.delete_by_handle(exclusiveVehicle)
     util.toast("-Chalkscript-\n\nExclusive Vehicle Deleted.")
 end)
@@ -1686,12 +1687,6 @@ menu.action(MenuVehPersonal, "Explode Exclusive Vehicle", {"csvehicleexplodeexcl
     end
     FIRE.ADD_OWNED_EXPLOSION(localped, exclusiveVehVector['x'], exclusiveVehVector['y'], exclusiveVehVector['z'], 4, 100, true, true, 1.0)
 end)
-
---menu.action(MenuVehPersonal, "Kick Passengers", {"csvehicleexclusivekickpassengers"}, "Kicks all Passengers out of your Exclusive Vehicle.", function(on_click)
---    VEHICLE.SET_VEHICLE_DOORS_LOCKED_FOR_ALL_PLAYERS(exclusiveVehicle, true)
---    util.yield(1000)
---    VEHICLE.SET_VEHICLE_DOORS_LOCKED_FOR_ALL_PLAYERS(exclusiveVehicle, false)
---end)
 
 
 --[[| Vehicle/Other/Doors/ |]]--
@@ -1773,7 +1768,7 @@ end)
 
 --[[| Vehicle/Other/Countermeasures/Flare/ |]]--
 RealFlares = false
-ForceCountermeasures = menu.toggle_loop(MenuVehCounterFlare, "Force Flares", {"csforceflares"}, "Spawns Flares Behind the Vehicle when the Horn Button is Pressed.", function(on)    
+menu.toggle_loop(MenuVehCounterFlare, "Force Flares", {"csforceflares"}, "Spawns Flares Behind the Vehicle when the Horn Button is Pressed.", function(on)    
     if PAD.IS_CONTROL_PRESSED(46, 46) then
         if player_cur_car ~= 0 then
             if RealFlares == false then
@@ -1806,7 +1801,6 @@ ForceCountermeasures = menu.toggle_loop(MenuVehCounterFlare, "Force Flares", {"c
             end
         else
             util.toast("-Chalkscript-\n\nPlease get in a Car before Activating this!")
-            menu.trigger_command(ForceCountermeasures, "off")
         end
     end
 end)
@@ -2762,8 +2756,8 @@ end)
 --[[| Chalkscript/ |]]--
 menu.divider(MenuCredits, "--- MAIN DEVELOPERS ---")
 
-menu.action(MenuCredits, "Гадюка#3642", {"cscreditsviper"}, "This is Me, and I did Everything, from Scratch.", function(on_click)
-    util.toast("- Гадюка#3642 -\n\nThis is Me, and I did Everything, from Scratch.")
+menu.action(MenuCredits, "ÃƒÆ’Ã‚ÂÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â°ÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â´ÃƒÆ’Ã¢â‚¬ËœÃƒâ€¦Ã‚Â½ÃƒÆ’Ã‚ÂÃƒâ€šÃ‚ÂºÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â°#3642", {"cscreditsviper"}, "This is Me, and I did Everything, from Scratch.", function(on_click)
+    util.toast("- ÃƒÆ’Ã‚ÂÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â°ÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â´ÃƒÆ’Ã¢â‚¬ËœÃƒâ€¦Ã‚Â½ÃƒÆ’Ã‚ÂÃƒâ€šÃ‚ÂºÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â°#3642 -\n\nThis is Me, and I did Legit Everything, from Scratch.")
 end)
 
 menu.divider(MenuCredits, "--- GAVE IDEAS ---")
