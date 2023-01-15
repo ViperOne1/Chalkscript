@@ -4,7 +4,7 @@ PatchNoteFixed = "\tDisable Exclusive Vehicle when Deleting it."
 PatchNoteAdded = "\tNone" 
 
 local response = false
-local localVersion = 5.37
+local localVersion = 5.38
 local currentVersion
 async_http.init("raw.githubusercontent.com", "/ViperOne1/Chalkscript/main/raw/version", function(output)
     currentVersion = tonumber(output)
@@ -1153,22 +1153,21 @@ end)
 
 --[[| Self/Weapon/Hotswap/ |]]--
 LegitRapidFire = false
-LegitSwitch1 = false
-LegitSwitch2 = true
-menu.toggle(MenuWeaponHotswap, "Hotswap", {"cshotswap"}, "Quickly Switches to your C4 and Back to Shoot Cartain Weapons Faster.\nMake sure to have C4/Sticky Bomb in your Inventory or this won't Work!", function(on)
+LegitRapidMS = 100
+menu.toggle(MenuWeaponHotswap, "Hotswap", {"cshotswap"}, "Quickly Switches to your C4 and Back to Shoot Certain Weapons Faster.\nMake sure to have C4/Sticky Bomb in your Inventory or this won't Work!", function(on)
     local localped = players.user_ped()
     if on then
         LegitRapidFire = true
         util.create_thread(function ()
             while LegitRapidFire do
                 if PED.IS_PED_SHOOTING(localped) then
-                    local currentWpMem = memory.alloc()
-                    local junk = WEAPON.GET_CURRENT_PED_WEAPON(localped, currentWpMem, 1)
-                    local currentWP = memory.read_int(currentWpMem)
-                    memory.free(currentWpMem)
+                    local curWepMem = memory.alloc()
+                    WEAPON.GET_CURRENT_PED_WEAPON(localped, curWepMem, 1)
+                    local currentWeapon = memory.read_int(curWepMem)
+                    memory.free(curWepMem)
                     WEAPON.SET_CURRENT_PED_WEAPON(localped, 741814745, LegitSwitchA1) --741814745 is C4
                     util.yield(LegitRapidMS)
-                    WEAPON.SET_CURRENT_PED_WEAPON(localped, currentWP, LegitSwitchA2)
+                    WEAPON.SET_CURRENT_PED_WEAPON(localped, currentWeapon, LegitSwitchA2)
                 end
                 util.yield()
             end
