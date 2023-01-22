@@ -1,10 +1,10 @@
-util.require_natives("1663599433")
+util.require_natives("1672190175")
 
-PatchNoteFixed = "\tDisable Exclusive Vehicle when Deleting it."
+PatchNoteFixed = "\tCustom R* Notification\n\tSend Custom Job Invite\n\tMy Name in Credits\n\tMissle Selection for Missle Options\n\tAuto Kick Options"
 PatchNoteAdded = "\tNone" 
 
 local response = false
-local localVersion = 5.38
+local localVersion = 5.39
 local currentVersion
 async_http.init("raw.githubusercontent.com", "/ViperOne1/Chalkscript/main/raw/version", function(output)
     currentVersion = tonumber(output)
@@ -543,19 +543,6 @@ local function is_entity_a_bomb(hash)
    return table.contains(bomb_hashes, hash)
 end
 
-Rocket_Hashes = {
-    {"rpg", util.joaat("w_lr_rpg_rocket")},
-    {"homingrpg", util.joaat("w_lr_homing_rocket")},
-    {"oppressor2", util.joaat("w_ex_vehiclemissile_3")},
-    {"b11barrage", util.joaat("w_smug_airmissile_01b")},
-    {"b11regular", util.joaat("w_battle_airmissile_01")},
-    {"chernobog", util.joaat("w_ex_vehiclemissile_4")},
-    {"bomb_1", util.joaat("w_smug_bomb_01")},
-    {"bomb_2", util.joaat("w_smug_bomb_02")},
-    {"bomb_3", util.joaat("w_smug_bomb_03")},
-    {"bomb_4", util.joaat("w_smug_bomb_04")},
-}
-
 function on_user_change_vehicle(vehicle)
     if vehicle ~= 0 then
         if initial_d_mode then 
@@ -875,7 +862,7 @@ objects_thread = util.create_thread(function (thr)
                         local localped = players.user_ped()
                         local localcoords = ENTITY.GET_ENTITY_COORDS(players.user_ped())
                         local forOffset = ENTITY.GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(localped, 0, 5, 0)
-                        RRocket = OBJECT.GET_CLOSEST_OBJECT_OF_TYPE(forOffset.x, forOffset.y, forOffset.z, 10, Rocket_Hashes[2][HomingM_SelectedMissle], false, true, true, true)
+                        RRocket = OBJECT.GET_CLOSEST_OBJECT_OF_TYPE(forOffset.x, forOffset.y, forOffset.z, 10, HomingM_SelectedMissle, false, true, true, true)
                         local p
                         p = GetClosestPlayerWithRange_Whitelist(homing_missle_range, false)
                         local ppcoords = ENTITY.GET_ENTITY_COORDS(p)
@@ -913,7 +900,7 @@ objects_thread = util.create_thread(function (thr)
                         local localped = players.user_ped()
                         local localcoords = ENTITY.GET_ENTITY_COORDS(players.user_ped())
                         local forOffset = ENTITY.GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(localped, 0, 5, 0)
-                        RRocket = OBJECT.GET_CLOSEST_OBJECT_OF_TYPE(forOffset.x, forOffset.y, forOffset.z, 10, Rocket_Hashes[2][MCLOS_SelectedMissle], false, true, true, true)
+                        RRocket = OBJECT.GET_CLOSEST_OBJECT_OF_TYPE(forOffset.x, forOffset.y, forOffset.z, 10, MCLOS_SelectedMissle, false, true, true, true)
                         local mclos_msl_rot = ENTITY.GET_ENTITY_ROTATION(RRocket)
                         local mclos_look_r = mclos_msl_rot.x
                         local mclos_look_p = mclos_msl_rot.y
@@ -980,11 +967,11 @@ objects_thread = util.create_thread(function (thr)
                             end 
                         end)
                     end 
-                    if missle_SACLOS then                                                        
+                    if missle_SACLOS then                                                       
                         local localped = players.user_ped()
                         local localcoords = ENTITY.GET_ENTITY_COORDS(players.user_ped())
                         local forOffset = ENTITY.GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(localped, 0, 5, 0)
-                        RRocket = OBJECT.GET_CLOSEST_OBJECT_OF_TYPE(forOffset.x, forOffset.y, forOffset.z, 10, Rocket_Hashes[2][MCLOS_SelectedMissle], false, true, true, true)
+                        RRocket = OBJECT.GET_CLOSEST_OBJECT_OF_TYPE(forOffset.x, forOffset.y, forOffset.z, 10, SACLOS_SelectedMissle, false, true, true)
                         util.create_thread(function ()
                             local msl = RRocket
                             NETWORK.NETWORK_REQUEST_CONTROL_OF_ENTITY(msl)
@@ -1178,7 +1165,7 @@ menu.toggle(MenuWeaponHotswap, "Hotswap", {"cshotswap"}, "Quickly Switches to yo
     end
 end)
 
-menu.slider(MenuWeaponHotswap, "Hotswap Mode", {"cshotswapmode"}, "Wether to Skip the Weapon Switch Animation or to Play Through it.\\n\n1 - Non-Legit; Skib Both Animations\n2 - Semi-Legit; Skip One Animation\n3 - Full-Legit; Don't Skip any Animations", 1, 3, 1, 1, function(value)
+menu.slider(MenuWeaponHotswap, "Hotswap Mode", {"cshotswapmode"}, "Wether to Skip the Weapon Switch Animation or to Play Through it.\\n\n1 - Non-Legit; Skip Both Animations\n2 - Semi-Legit; Skip One Animation\n3 - Full-Legit; Don't Skip any Animations", 1, 3, 1, 1, function(value)
     if value == 1 then LegitSwitchA1 = true ; LegitSwitchA2 = true
     elseif value == 2 then LegitSwitchA1 = false ; LegitSwitchA2 = true
     elseif value == 3 then LegitSwitchA1 = false ; LegitSwitchA2 = false end 
@@ -1252,18 +1239,18 @@ menu.toggle(MenuWeaponMA, "Missle Aimbot", {"csmissleaimbot"}, "Rotates any Miss
     mod_uses("object", if on then 1 else -1)
 end)
 
-HomingM_SelectedMissle = 2
+HomingM_SelectedMissle = util.joaat("w_lr_homing_rocket")
 menu.slider(MenuWeaponMA, "Missle Aimbot Selected Missle", {"csmissleaimbotmissle"}, "The Missle that will be used for 'Missle Aimbot'.\n\n1 - RPG\n2 - Homing Launcher\n3 - Oppressor Missle\n4 - B-11 Barrage\n5 - B-11 Homing\n6 - Chernobog Missle\n7 - Explosive Bomb\n8 - Incendiary Bomb\n9 - Gas Bomb\n10 - Cluster Bomb", 1, 10, 2, 1, function(value)
-    if value == 1 then HomingM_SelectedMissle = 1
-    elseif value == 2 then HomingM_SelectedMissle = 2
-    elseif value == 3 then HomingM_SelectedMissle = 3
-    elseif value == 4 then HomingM_SelectedMissle = 4
-    elseif value == 5 then HomingM_SelectedMissle = 5
-    elseif value == 6 then HomingM_SelectedMissle = 6
-    elseif value == 7 then HomingM_SelectedMissle = 7
-    elseif value == 8 then HomingM_SelectedMissle = 8
-    elseif value == 9 then HomingM_SelectedMissle = 9
-    elseif value == 10 then HomingM_SelectedMissle = 10 end
+    if value == 1 then HomingM_SelectedMissle = util.joaat("w_lr_rpg_rocket")
+    elseif value == 2 then HomingM_SelectedMissle = util.joaat("w_lr_homing_rocket")
+    elseif value == 3 then HomingM_SelectedMissle = util.joaat("w_ex_vehiclemissile_3")
+    elseif value == 4 then HomingM_SelectedMissle = util.joaat("w_smug_airmissile_01b")
+    elseif value == 5 then HomingM_SelectedMissle = util.joaat("w_battle_airmissile_01")
+    elseif value == 6 then HomingM_SelectedMissle = util.joaat("w_ex_vehiclemissile_4")
+    elseif value == 7 then HomingM_SelectedMissle = util.joaat("w_smug_bomb_01")
+    elseif value == 8 then HomingM_SelectedMissle = util.joaat("w_smug_bomb_02")
+    elseif value == 9 then HomingM_SelectedMissle = util.joaat("w_smug_bomb_03")
+    elseif value == 10 then HomingM_SelectedMissle = util.joaat("w_smug_bomb_04") end
 end)
 
 homing_missle_range = 1000
@@ -1280,18 +1267,18 @@ menu.toggle(MenuWeaponMCLOS, "MCLOS", {"csmclos"}, "MCLOS is Manual Missle Guida
     mod_uses("object", if on then 1 else -1)
 end)
 
-MCLOS_SelectedMissle = 2
+MCLOS_SelectedMissle = util.joaat("w_lr_homing_rocket")
 menu.slider(MenuWeaponMCLOS, "MCLOS Selected Missle", {"csmclosmissle"}, "The Missle that will be used for MCLOS Guidance.\n\n1 - RPG\n2 - Homing Launcher\n3 - Oppressor Missle\n4 - B-11 Barrage\n5 - B-11 Homing\n6 - Chernobog Missle\n7 - Explosive Bomb\n8 - Incendiary Bomb\n9 - Gas Bomb\n10 - Cluster Bomb", 1, 10, 2, 1, function(value)
-    if value == 1 then MCLOS_SelectedMissle = 1
-    elseif value == 2 then MCLOS_SelectedMissle = 2
-    elseif value == 3 then MCLOS_SelectedMissle = 3
-    elseif value == 4 then MCLOS_SelectedMissle = 4
-    elseif value == 5 then MCLOS_SelectedMissle = 5
-    elseif value == 6 then MCLOS_SelectedMissle = 6
-    elseif value == 7 then MCLOS_SelectedMissle = 7
-    elseif value == 8 then MCLOS_SelectedMissle = 8
-    elseif value == 9 then MCLOS_SelectedMissle = 9
-    elseif value == 10 then MCLOS_SelectedMissle = 10 end
+    if value == 1 then MCLOS_SelectedMissle = util.joaat("w_lr_rpg_rocket")
+    elseif value == 2 then MCLOS_SelectedMissle = util.joaat("w_lr_homing_rocket")
+    elseif value == 3 then MCLOS_SelectedMissle = util.joaat("w_ex_vehiclemissile_3")
+    elseif value == 4 then MCLOS_SelectedMissle = util.joaat("w_smug_airmissile_01b")
+    elseif value == 5 then MCLOS_SelectedMissle = util.joaat("w_battle_airmissile_01")
+    elseif value == 6 then MCLOS_SelectedMissle = util.joaat("w_ex_vehiclemissile_4")
+    elseif value == 7 then MCLOS_SelectedMissle = util.joaat("w_smug_bomb_01")
+    elseif value == 8 then MCLOS_SelectedMissle = util.joaat("w_smug_bomb_02")
+    elseif value == 9 then MCLOS_SelectedMissle = util.joaat("w_smug_bomb_03")
+    elseif value == 10 then MCLOS_SelectedMissle = util.joaat("w_smug_bomb_04") end
 end)
 
 MCLOS_controlModeU = 111
@@ -1329,18 +1316,18 @@ menu.toggle(MenuWeaponSACLOS, "SACLOS", {"cssaclos"}, "SACLOS is Semi-Automatic 
     mod_uses("object", if on then 1 else -1)
 end)
 
-SACLOS_SelectedMissle = 2
+SACLOS_SelectedMissle = util.joaat("w_lr_homing_rocket")
 menu.slider(MenuWeaponSACLOS, "SACLOS Selected Missle", {"cssaclosmissle"}, "The Missle that will be used for SACLOS Guidance.\n\n1 - RPG\n2 - Homing Launcher\n3 - Oppressor Missle\n4 - B-11 Barrage\n5 - B-11 Homing\n6 - Chernobog Missle\n7 - Explosive Bomb\n8 - Incendiary Bomb\n9 - Gas Bomb\n10 - Cluster Bomb", 1, 10, 2, 1, function(value)
-    if value == 1 then SACLOS_SelectedMissle = 1
-    elseif value == 2 then SACLOS_SelectedMissle = 2
-    elseif value == 3 then SACLOS_SelectedMissle = 3
-    elseif value == 4 then SACLOS_SelectedMissle = 4
-    elseif value == 5 then SACLOS_SelectedMissle = 5
-    elseif value == 6 then SACLOS_SelectedMissle = 6
-    elseif value == 7 then SACLOS_SelectedMissle = 7
-    elseif value == 8 then SACLOS_SelectedMissle = 8
-    elseif value == 9 then SACLOS_SelectedMissle = 9
-    elseif value == 10 then SACLOS_SelectedMissle = 10 end
+    if value == 1 then SACLOS_SelectedMissle = util.joaat("w_lr_rpg_rocket")
+    elseif value == 2 then SACLOS_SelectedMissle = util.joaat("w_lr_homing_rocket")
+    elseif value == 3 then SACLOS_SelectedMissle = util.joaat("w_ex_vehiclemissile_3")
+    elseif value == 4 then SACLOS_SelectedMissle = util.joaat("w_smug_airmissile_01b")
+    elseif value == 5 then SACLOS_SelectedMissle = util.joaat("w_battle_airmissile_01")
+    elseif value == 6 then SACLOS_SelectedMissle = util.joaat("w_ex_vehiclemissile_4")
+    elseif value == 7 then SACLOS_SelectedMissle = util.joaat("w_smug_bomb_01")
+    elseif value == 8 then SACLOS_SelectedMissle = util.joaat("w_smug_bomb_02")
+    elseif value == 9 then SACLOS_SelectedMissle = util.joaat("w_smug_bomb_03")
+    elseif value == 10 then SACLOS_SelectedMissle = util.joaat("w_smug_bomb_04") end
 end)
 
 SACLOS_MaxSpeed = 50
@@ -1926,96 +1913,71 @@ end)
 
 
 --[[| Online/AllPlayers/ |]]--
-menu.action(MenuOnlineAll, "Love Letter All", {"csloveletterall"}, "Love Letter Kicks every Player in the Session. You have to be the Host to use this!", function(on_click)
+menu.action(MenuOnlineAll, "Kick All", {"cskickall"}, "Kicks every Player in the Session. Reccomended that you are the Host when using this.", function(on_click)
     for i = 0, 31, 1 do
-        if players.exists(i) then
+        if players.exists(i) and i ~= players.user() then
             local string PlayerName = players.get_name(i)
             local string PlayerNameLower = PlayerName:lower()
-            if players.get_host() ~= i then 
-                menu.trigger_command(menu.ref_by_command_name("loveletterkick"..PlayerNameLower))
-            end
+            menu.trigger_command(menu.ref_by_command_name("kick"..PlayerNameLower))
         end
     end
 end)
 
-menu.action(MenuOnlineAll, "Crash All", {"cscrashall"}, "Crashes every Player in the Session. Please don't Abuse this.", function(on_click)
+menu.action(MenuOnlineAll, "Crash All", {"cscrashall"}, "Crashes every Player in the Session.", function(on_click)
     for i = 0, 31, 1 do
-        if players.exists(i) then
+        if players.exists(i) and i ~= players.user() then
             local string PlayerName = players.get_name(i)
             local string PlayerNameLower = PlayerName:lower()
-            if players.user() == i then goto Continue else  
-                menu.trigger_command(menu.ref_by_command_name("crash"..PlayerNameLower))
-                menu.trigger_command(menu.ref_by_command_name("ngcrash"..PlayerNameLower))
-                menu.trigger_command(menu.ref_by_command_name("footlettuce"..PlayerNameLower))
-            end
+            menu.trigger_command(menu.ref_by_command_name("crash"..PlayerNameLower))
+            menu.trigger_command(menu.ref_by_command_name("ngcrash"..PlayerNameLower))
+            menu.trigger_command(menu.ref_by_command_name("pipebomb"..PlayerNameLower))
+            menu.trigger_command(menu.ref_by_command_name("steamroller"..PlayerNameLower))
         end
-        ::Continue::
     end
 end)
 
 
 --[[| Online/TargetedKickOptions/ |]]--
-menu.toggle_loop(MenuOnlineTK, "Auto Kick Host", {"csautokickhost"}, "Automatically Breakup Kicks the Host when Joining a New Session. You need to have Stand Regular to use this, since it uses Breakup Kick. And you could also get Karma'd for this if the Host is Modding!", function(on)
+menu.toggle_loop(MenuOnlineTK, "Auto Kick Host", {"csautokickhost"}, "Automatically Kicks the Host when you Join a New Session. Be careful with this, as you can get Karma'd if the Host is Modding.", function(on)
     local CurrentHostId = players.get_host()
     local CurrentHostName = players.get_name(CurrentHostId)
     local string CurrentHostNameLower = CurrentHostName:lower()
     if players.user() ~= CurrentHostId then
-        menu.trigger_command(menu.ref_by_command_name("breakup"..CurrentHostNameLower))
+        menu.trigger_command(menu.ref_by_command_name("kick"..CurrentHostNameLower))
     end    
 end)
 
-menu.toggle_loop(MenuOnlineTK, "Auto Kick Modders", {"csautokickmodders"}, "Automatically Kicks any Players that get Marked as Modders. You need to be the Host to use this, since it Love Letter Licks them.", function(on)
+menu.toggle_loop(MenuOnlineTK, "Auto Kick Modders", {"csautokickmodders"}, "Automatically Kicks any Players that get Marked as Modders. Highly Reccomended to be Host while using this, so as to not get Karma'd.", function(on)
     for i = 0, 31, 1 do
-        if players.exists(i) then
+        if players.exists(i) and i ~= players.user() and players.is_marked_as_modder(i) then
             local PlayerName = players.get_name(i)
             local PlayerNameLower = PlayerName:lower()
-            if players.user() ~= i then 
-                if players.is_marked_as_modder(i) then
-                    menu.trigger_command(menu.ref_by_command_name("loveletterkick"..PlayerNameLower))
-                end
-            end
+            menu.trigger_command(menu.ref_by_command_name("kick"..PlayerNameLower))
         end
     end
 end)
 
-menu.action(MenuOnlineTK, "Kick Host", {"cskickhost"}, "Breakup Kicks the Host. You need to have Stand Regular to use this. Be Careful though, as the Kick might Backfire if the Host is also Modding!", function(on_click)
+menu.action(MenuOnlineTK, "Kick Host", {"cskickhost"}, "Kicks the Host in your Current Session. Be careful with this, as you can get Karma'd if the Host is Modding.", function(on_click)
     local CurrentHostId = players.get_host()
     local CurrentHostName = players.get_name(CurrentHostId)
     local string CurrentHostNameLower = CurrentHostName:lower()
     if players.get_host() ~= players.user() then
-        menu.trigger_command(menu.ref_by_command_name("breakup"..CurrentHostNameLower))
+        menu.trigger_command(menu.ref_by_command_name("kick"..CurrentHostNameLower))
+    else
+        util.toast("-Chalkscript-\n\nThis Command doesn't Work on yourself; You are already the Host!")
     end
 end)
 
-menu.action(MenuOnlineTK, "Loveletter Kick Modders", {"cslovelettermodders"}, "Love Letter Kicks all Players Marked as Modders. You have to be the Host to use this!", function(on_click)
+menu.action(MenuOnlineTK, "Kick Modders", {"cskickmodders"}, "Will use Smart Kick to use the Best Kick on all Modders. Being the Host is Highly Reccomended, so as to not get Karma'd.", function(on_click)
     for i = 0, 31, 1 do
-        if players.exists(i) then
+        if players.exists(i) and i ~= players.user() and players.is_marked_as_modder(i) then
             local PlayerName = players.get_name(i)
             local PlayerNameLower = PlayerName:lower()
-            if players.user() == i then goto Continue else  
-                if players.is_marked_as_modder(i) then
-                    menu.trigger_command(menu.ref_by_command_name("loveletterkick"..PlayerNameLower))
-                end
-            end
+            menu.trigger_command(menu.ref_by_command_name("kick"..PlayerNameLower))
         end
-        ::Continue::
     end  
 end)
 
-menu.action(MenuOnlineTK, "Breakup Kick Modders", {"csbreakupmodders"}, "Breakup Kicks all Players Marked as Modders. You have to have Stand Regular to use this, and you Might get Breakup Kick Karma from a Modder you Kick.", function(on_click)
-    for i = 0, 31, 1 do
-        if players.exists(i) then
-            local PlayerName = players.get_name(i)
-            local PlayerNameLower = PlayerName:lower()
-            if players.get_host() == i then goto Continue else  
-                if players.is_marked_as_modder(i) then
-                    menu.trigger_command(menu.ref_by_command_name("breakup"..PlayerNameLower))
-                end
-            end
-        end
-        ::Continue::
-    end
-end)
 
 
 --[[| Online/Protections/ |]]--
@@ -2254,7 +2216,7 @@ end)
 
 menu.action(MenuAlerts, "Custom Alert", {"csfakecustomalert"}, "Lets you input a Custom Alert to Show.", function(on_click)
     util.toast("-Chalkscript-\n\nType what you want the Alert to Say. Use '~n~' to make a Newline, like Pressing Enter.")
-    menu.show_command_box("csgamefaca ")
+    menu.show_command_box("csfakecustomalert ")
 end, function(on_command)
     show_custom_rockstar_alert(on_command)
 end)
@@ -2755,8 +2717,8 @@ end)
 --[[| Chalkscript/ |]]--
 menu.divider(MenuCredits, "--- MAIN DEVELOPERS ---")
 
-menu.action(MenuCredits, "ÃƒÆ’Ã‚ÂÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â°ÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â´ÃƒÆ’Ã¢â‚¬ËœÃƒâ€¦Ã‚Â½ÃƒÆ’Ã‚ÂÃƒâ€šÃ‚ÂºÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â°#3642", {"cscreditsviper"}, "This is Me, and I did Everything, from Scratch.", function(on_click)
-    util.toast("- ÃƒÆ’Ã‚ÂÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â°ÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â´ÃƒÆ’Ã¢â‚¬ËœÃƒâ€¦Ã‚Â½ÃƒÆ’Ã‚ÂÃƒâ€šÃ‚ÂºÃƒÆ’Ã‚ÂÃƒâ€šÃ‚Â°#3642 -\n\nThis is Me, and I did Legit Everything, from Scratch.")
+menu.action(MenuCredits, "Гадюка#3642", {"cscreditsviper"}, "This is Me, and I did Everything, from Scratch.", function(on_click)
+    util.toast("- Гадюка#3642 -\n\nThis is Me, and I did Everything, from Scratch.")
 end)
 
 menu.divider(MenuCredits, "--- GAVE IDEAS ---")
@@ -2815,7 +2777,7 @@ function PlayerAddRoot(csPID)
     --Player Root Fun
 
     menu.action(MenuPlayerFun, "Custom Job Invite", {"csfunjobinv"}, "Sends the Player a Notification that says you Started the a Job, with the Name of it being the Text you Input.", function(on_click)
-        menu.show_command_box_click_based(on_click, "csplayerfuncji "..players.get_name(csPID):lower().." ") end, function(input)
+        menu.show_command_box_click_based(on_click, "csfunjobinv "..players.get_name(csPID):lower().." ") end, function(input)
             local event_data = {0x8E38E2DF, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
             input = input:sub(1, 127)
             for i = 0, #input -1 do
