@@ -1,10 +1,10 @@
 util.require_natives("1672190175")
 
-PatchNoteFixed = "\tCustom R* Notification\n\tSend Custom Job Invite\n\tMy Name in Credits\n\tMissle Selection for Missle Options\n\tAuto Kick Options"
-PatchNoteAdded = "\tNone" 
+PatchNoteFixed = "\tNone"
+PatchNoteAdded = "\tB-11 'Fix'; Vehicle/Main/Aircraft/Jet/" 
 
 local response = false
-local localVersion = 5.39
+local localVersion = 5.40
 local currentVersion
 async_http.init("raw.githubusercontent.com", "/ViperOne1/Chalkscript/main/raw/version", function(output)
     currentVersion = tonumber(output)
@@ -269,6 +269,36 @@ local function raycast_gameplay_cam(flag, distance)
             cam_pos.x, 
             cam_pos.y, 
             cam_pos.z, 
+            destination.x, 
+            destination.y, 
+            destination.z, 
+            flag, 
+            players.user_ped(), 
+            1
+        ), ptr1, ptr2, ptr3, ptr4)
+    local p1 = memory.read_int(ptr1)
+    local p2 = memory.read_vector3(ptr2)
+    local p3 = memory.read_vector3(ptr3)
+    local p4 = memory.read_int(ptr4)
+    return {p1, p2, p3, p4}
+end
+
+local function raycast_vehicle_heading(flag, distance, vehicle)
+    local ptr1, ptr2, ptr3, ptr4 = memory.alloc(), memory.alloc(), memory.alloc(), memory.alloc()
+    local veh_rot = ENTITY.GET_ENTITY_ROTATION(vehicle, 2)
+    local veh_pos = ENTITY.GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(vehicle, 0, 0, 0)
+    local direction = v3.toDir(veh_rot)
+    local destination = 
+    { 
+        x = veh_pos.x + direction.x * distance, 
+        y = veh_pos.y + direction.y * distance, 
+        z = veh_pos.z + direction.z * distance 
+    }
+    SHAPETEST.GET_SHAPE_TEST_RESULT(
+        SHAPETEST.START_EXPENSIVE_SYNCHRONOUS_SHAPE_TEST_LOS_PROBE(
+            veh_pos.x, 
+            veh_pos.y, 
+            veh_pos.z, 
             destination.x, 
             destination.y, 
             destination.z, 
@@ -666,6 +696,7 @@ MenuVehicle = menu.list(menu.my_root(), "Vehicle", {""}, "Vehicle Options.") ; m
             MenuVisualLights = menu.list(MenuVehVisual, "Vehicle Lights", {""}, "Vehicle Light Options.") ; menu.divider(MenuVisualLights, "--- Vehicle Light Options ---")
         MenuVehHealth = menu.list(MenuVehicleMain, "Health/Armour", {""}, "Vehicle Health/Armour Options.") ; menu.divider(MenuVehHealth, "--- Vehicle Health/Armour Options ---")
         MenuAircraft = menu.list(MenuVehicleMain, "Aircraft", {""}, "Aircraft Options.") ; menu.divider(MenuAircraft, "--- Aircraft Options ---")
+            MenuJet = menu.list(MenuAircraft, "Jet", {""}, "Jet Options.") ; menu.divider(MenuJet, "--- Jet Options ---")
             MenuHeli = menu.list(MenuAircraft, "Helicopter", {""}, "Helicopter Options.") ; menu.divider(MenuHeli, "--- Helicopter Options ---")
             MenuAircraftUniversal = menu.list(MenuAircraft, "Universal", {""}, "Universal Aircraft Options.") ; menu.divider(MenuAircraftUniversal, "--- Universal Aircraft Options ---")
         MenuVehPersonal = menu.list(MenuVehicleMain, "Personal", {""}, "Personal Vehicle Options.") ; menu.divider(MenuVehPersonal, "--- Personal Vehicle Options ---")
@@ -1538,8 +1569,7 @@ end)
 
 menu.toggle_loop(MenuVehHealth, "No C4 on Vehicle", {"csnostickyonvehicle"}, "While Toggled, this will Automatically Remove any C4 that is Attatched to your Vehicle.", function(on)
     if player_cur_car ~= 0 then
-        playerPed = PLAYER.GET_PLAYER_PED_SCRIPT_INDEX(players.user())
-        NETWORK.REMOVE_ALL_STICKY_BOMBS_FROM_ENTITY(player_cur_car, playerPed)
+        NETWORK.REMOVE_ALL_STICKY_BOMBS_FROM_ENTITY(player_cur_car, players.user_ped())
     end 
 end)
 
@@ -1551,9 +1581,24 @@ menu.toggle_loop(MenuVehHealth, "Never Damaged", {"csvehneverdamaged"}, "Constan
 end)
 
 
+--[[| Vehicle/Main/Aircraft/Jet/ |]]--
+b11FixToggle = menu.toggle_loop(MenuJet, "B-11 'Fix'", {"csjetfix"}, "Only Works on the B-11. Makes the Cannon like how it is in Real Life; Insanely Fast.", function(on)
+    if VEHICLE.IS_VEHICLE_MODEL(player_cur_car, 1692272545) then
+        local playerA10 = player_cur_car
+        local cannonBonePos = ENTITY.GET_ENTITY_BONE_POSTION(playerA10, ENTITY.GET_ENTITY_BONE_INDEX_BY_NAME(playerA10, "weapon_1a"))
+        local target = ENTITY.GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(playerA10, 0, 175, 0)
+        if PAD.IS_CONTROL_PRESSED(114, 114) then
+            MISC.SHOOT_SINGLE_BULLET_BETWEEN_COORDS(cannonBonePos['x'], cannonBonePos['y'], cannonBonePos['z'], target['x']+math.random(-3,3), target['y']+math.random(-3,3), target['z']+math.random(-3,3), 100.0, true, 3800181289, players.user_ped(), true, false, 100.0)
+        end
+    else
+        util.toast("-Chalkscript-\n\nYou have to be in a B-11 to use this!")
+        menu.trigger_command(b11FixToggle, "off")
+    end
+end)
+
 
 --[[| Vehicle/Main/Aircraft/Helicopter/ |]]--
-menu.click_slider(MenuHeli, "Heli Power", {"cshelipower"}, "Increases or Decreased the Helicopter Thrust.\nDefault is .50", 0, 1000, 50, 10, function (value)
+menu.click_slider(MenuHeli, "Heli Power", {"cshelipower"}, "Increases or Decreased the Helicopter Thrust.\nDefault is 50", 0, 1000, 50, 10, function (value)
     if player_cur_car ~= 0 then
         local CflyingHandling = get_sub_handling_types(entities.get_user_vehicle_as_handle(), 1)
         if CflyingHandling then
