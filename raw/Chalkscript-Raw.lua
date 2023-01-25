@@ -1,10 +1,10 @@
 util.require_natives("1672190175")
 
-PatchNoteFixed = "\tNone"
-PatchNoteAdded = "\tB-11 'Fix'; Vehicle/Main/Aircraft/Jet/" 
+PatchNoteFixed = "\tTrue RGB\n\tSmooth RGB\n\tFaster Projectile Marking\n\t/Vehicle/Other/Auto Claim MMI; Removed, Patched"
+PatchNoteAdded = "\t/Vehicle/Movement/Nitrous" 
 
 local response = false
-local localVersion = 5.40
+local localVersion = 5.41
 local currentVersion
 async_http.init("raw.githubusercontent.com", "/ViperOne1/Chalkscript/main/raw/version", function(output)
     currentVersion = tonumber(output)
@@ -728,6 +728,7 @@ MenuWorld = menu.list(menu.my_root(), "World", {""}, "World Options.") ; menu.di
             MenuWrldProjOptions = menu.list(MenuWrldProjMarking, "Mark Projectiles", {""}, "Mark Projectile Options.") ; menu.divider(MenuWrldProjOptions, "--- Mark Projectile Options ---")
             MenuWrldProjColours = menu.list(MenuWrldProjMarking, "Mark Projectile Colours", {""}, "Mark Projectile Colour Options.") ; menu.divider(MenuWrldProjColours, "--- Mark Projectile Colour Options ---")
         MenuWrldProjMovement = menu.list(MenuWrldProj, "Projectile Movement", {""}, "Projectile Movement Options.") ; menu.divider(MenuWrldProjMovement, "--- Projectile Movement Options ---")
+    MenuWrldChaos = menu.list(MenuWorld, "Chaos", {""}, "Chaos Options.") ; menu.divider(MenuWrldChaos, "--- Chaos Options ---")
 
 --[[Game Menu]]--
 MenuGame = menu.list(menu.my_root(), "Game", {""}, "Game Options.") ; menu.divider(MenuGame, "--- Game Options ---")
@@ -744,9 +745,9 @@ MenuGame = menu.list(menu.my_root(), "Game", {""}, "Game Options.") ; menu.divid
             MenuGameRunMacrosMisc = menu.list(MenuGameRunMacros, "Other", {"csgamemacrosmacroother"}, "Macros that have to do with Miscellaneous things, like Activating Thermal Visor.") ; menu.divider(MenuGameRunMacrosMisc, "--- Other Macros ---") 
         
 --[[Menu Chalkscript]]--
-MenuMisc = menu.list(menu.my_root(), "Chalkscript", {""}, "Chalkscript Options.") ; menu.divider(MenuMisc, "--- Credits ---")
+MenuMisc = menu.list(menu.my_root(), "Chalkscript", {""}, "Chalkscript Options.") ; menu.divider(MenuMisc, "--- Chalkscript ---")
     --[[Menu Chalkscript Subcategories]]--
-    MenuCredits = menu.list(MenuMisc, "Credits", {""}, "Credits for the Developers of Chalkscript.")
+    MenuCredits = menu.list(MenuMisc, "Credits", {""}, "Credits for the Developers of Chalkscript.") ; menu.divider(MenuCredits, "--- Credits ---")
 
 
 
@@ -773,31 +774,34 @@ rgb_thread = util.create_thread(function(thr)
         randR = r
         randG = g
         randB = b
-
-        --True RGB--
-        tr, tg, tb = 0, 0, 0
-        local timeToWait = 500 
-        tr, tg, tb = 255, 0, 0 -- Red
-        util.yield(timeToWait)
-        tr, tg, tb = 255, 100, 20 -- Orange
-        util.yield(timeToWait)
-        tr, tg, tb = 255, 255, 0 -- Yellow
-        util.yield(timeToWait)
-        tr, tg, tb = 0, 255, 0 -- Green
-        util.yield(timeToWait)
-        tr, tg, tb = 0, 0, 255 -- Blue
-        util.yield(timeToWait)
-        tr, tg, tb = 70, 20, 255 -- Indigo / Purple
-        util.yield(timeToWait)
-        tr, tg, tb = 255, 0, 255 -- Violet / Pink
-        util.yield(timeToWait)
         util.yield()
     end
 end)
 
-objects_thread = util.create_thread(function (thr)
+trgb_thread = util.create_thread(function(thr)
+    tr, tg, tb = 0, 0, 0
+    while 1 do
+        --True RGB-- 
+        tr, tg, tb = 255, 0, 0 -- Red
+        util.yield(500)
+        tr, tg, tb = 255, 100, 20 -- Orange
+        util.yield(500)
+        tr, tg, tb = 255, 255, 0 -- Yellow
+        util.yield(500)
+        tr, tg, tb = 0, 255, 0 -- Green
+        util.yield(500)
+        tr, tg, tb = 0, 0, 255 -- Blue
+        util.yield(500)
+        tr, tg, tb = 70, 20, 255 -- Indigo / Purple
+        util.yield(500)
+        tr, tg, tb = 255, 0, 255 -- Violet / Pink
+        util.yield(500)
+    end
+end)
+ 
+projecileBlipThread = util.create_thread(function(thr)
     local projectile_blips = {}
-    while true do
+    while 1 do
         for k,b in pairs(projectile_blips) do
             if HUD.GET_BLIP_INFO_ID_ENTITY_INDEX(b) == 0 then 
                 util.remove_blip(b) 
@@ -805,9 +809,49 @@ objects_thread = util.create_thread(function (thr)
             end
         end
         if object_uses > 0 then
-            if show_updates then
-                ls_log("-Chalkscript-\n\nObject Pool is being Updated")
+            if blip_projectiles then
+                all_objects = entities.get_all_objects_as_handles()
+                for k,obj in pairs(all_objects) do
+                    if is_entity_a_missle(ENTITY.GET_ENTITY_MODEL(obj)) and blip_proj_missles and HUD.GET_BLIP_FROM_ENTITY(obj) == 0 then --Mark Missles
+                        local proj_blip_missle = HUD.ADD_BLIP_FOR_ENTITY(obj)
+                        HUD.SET_BLIP_SPRITE(proj_blip_missle, 548) --Missle Icon ID
+                        HUD.SET_BLIP_COLOUR(proj_blip_missle, proj_blip_missle_col)
+                        projectile_blips[#projectile_blips + 1] = proj_blip_missle
+                    end
+                    if is_entity_a_bomb(ENTITY.GET_ENTITY_MODEL(obj)) and blip_proj_bombs and HUD.GET_BLIP_FROM_ENTITY(obj) == 0 then --Mark Bombs
+                        local proj_blip_bomb = HUD.ADD_BLIP_FOR_ENTITY(obj)
+                        HUD.SET_BLIP_SPRITE(proj_blip_bomb, 368) --Bomb Icon ID
+                        HUD.SET_BLIP_COLOUR(proj_blip_bomb, proj_blip_bomb_col)                                  
+                        projectile_blips[#projectile_blips + 1] = proj_blip_bomb
+                    end
+                    if is_entity_a_grenade(ENTITY.GET_ENTITY_MODEL(obj)) and blip_proj_grenades and HUD.GET_BLIP_FROM_ENTITY(obj) == 0 then --Mark Grenades
+                        local proj_blip_grenade = HUD.ADD_BLIP_FOR_ENTITY(obj)
+                        HUD.SET_BLIP_SPRITE(proj_blip_grenade, 486) --Grenade Icon ID
+                        HUD.SET_BLIP_COLOUR(proj_blip_grenade, proj_blip_grenade_col)
+                        projectile_blips[#projectile_blips + 1] = proj_blip_grenade
+                    end
+                    if is_entity_a_mine(ENTITY.GET_ENTITY_MODEL(obj)) and blip_proj_mines and HUD.GET_BLIP_FROM_ENTITY(obj) == 0 then --Mark Mines
+                        local proj_blip_mine = HUD.ADD_BLIP_FOR_ENTITY(obj)
+                        HUD.SET_BLIP_SPRITE(proj_blip_mine, 653) --Mine Icon ID
+                        HUD.SET_BLIP_COLOUR(proj_blip_mine, proj_blip_mine_col)
+                        projectile_blips[#projectile_blips + 1] = proj_blip_mine 
+                    end
+                    if is_entity_a_miscprojectile(ENTITY.GET_ENTITY_MODEL(obj)) and blip_proj_misc and HUD.GET_BLIP_FROM_ENTITY(obj) == 0 then --Mark Misc Projectiles
+                        local proj_blip_misc = HUD.ADD_BLIP_FOR_ENTITY(obj)
+                        HUD.SET_BLIP_SPRITE(proj_blip_misc, 364) --Misc Projectile Icon ID
+                        HUD.SET_BLIP_COLOUR(proj_blip_misc, proj_blip_misc_col)
+                        projectile_blips[#projectile_blips + 1] = proj_blip_misc 
+                    end
+                end
             end
+        end
+        util.yield()
+    end
+end)
+
+objects_thread = util.create_thread(function(thr)
+    while true do
+        if object_uses > 0 then
             all_objects = entities.get_all_objects_as_handles()
             for k,obj in pairs(all_objects) do
                 if is_entity_a_projectile_all(ENTITY.GET_ENTITY_MODEL(obj)) then  --Edit Proj Offsets Here
@@ -842,7 +886,6 @@ objects_thread = util.create_thread(function (thr)
                                             dist = e
                                             closest_entity = EntitiesToTarget[index]
                                             local closestEntity = entity
-                                            local closestDist = distance
                                             local ProjLocation = ENTITY.GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(closestEntity, 0, 0, 0)
                                             local ProjRotation = ENTITY.GET_ENTITY_ROTATION(closestEntity)
                                             local lookAtProj = v3.lookAt(VehCoords, EntityCoords)
@@ -1035,75 +1078,6 @@ objects_thread = util.create_thread(function (thr)
                             end 
                         end)
                     end
-                end
-                if is_entity_a_missle(ENTITY.GET_ENTITY_MODEL(obj)) then --Mark Missles
-                    if blip_projectiles then
-                        if blip_proj_missles then   
-                            if HUD.GET_BLIP_FROM_ENTITY(obj) == 0 then
-                                local proj_blip_missle = HUD.ADD_BLIP_FOR_ENTITY(obj)
-                                HUD.SET_BLIP_SPRITE(proj_blip_missle, 548) --Missle Icon ID
-                                HUD.SET_BLIP_COLOUR(proj_blip_missle, proj_blip_missle_col)
-                                projectile_blips[#projectile_blips + 1] = proj_blip_missle
-                            end
-                        end
-                    end
-                end
-                if is_entity_a_bomb(ENTITY.GET_ENTITY_MODEL(obj)) then --Mark Bombs
-                    if blip_projectiles then
-                        if blip_proj_bombs then    
-                            if HUD.GET_BLIP_FROM_ENTITY(obj) == 0 then
-                                local proj_blip_bomb = HUD.ADD_BLIP_FOR_ENTITY(obj)
-                                HUD.SET_BLIP_SPRITE(proj_blip_bomb, 368) --Bomb Icon ID
-                                HUD.SET_BLIP_COLOUR(proj_blip_bomb, proj_blip_bomb_col)                                  
-                                projectile_blips[#projectile_blips + 1] = proj_blip_bomb
-                            end
-                        end
-                    end
-                end
-                if is_entity_a_grenade(ENTITY.GET_ENTITY_MODEL(obj)) then --Mark Grenades
-                    if blip_projectiles then
-                        if blip_proj_grenades then
-                            if HUD.GET_BLIP_FROM_ENTITY(obj) == 0 then
-                                local proj_blip_grenade = HUD.ADD_BLIP_FOR_ENTITY(obj)
-                                HUD.SET_BLIP_SPRITE(proj_blip_grenade, 486) --Grenade Icon ID
-                                HUD.SET_BLIP_COLOUR(proj_blip_grenade, proj_blip_grenade_col)
-                                projectile_blips[#projectile_blips + 1] = proj_blip_grenade
-                            end
-                        end
-                    end
-                end
-                if is_entity_a_mine(ENTITY.GET_ENTITY_MODEL(obj)) then --Mark Mines
-                    if blip_projectiles then
-                        if blip_proj_mines then    
-                            if HUD.GET_BLIP_FROM_ENTITY(obj) == 0 then
-                                local proj_blip_mine = HUD.ADD_BLIP_FOR_ENTITY(obj)
-                                HUD.SET_BLIP_SPRITE(proj_blip_mine, 653) --Mine Icon ID
-                                HUD.SET_BLIP_COLOUR(proj_blip_mine, proj_blip_mine_col)
-                                projectile_blips[#projectile_blips + 1] = proj_blip_mine 
-                            end
-                        end
-                    end
-                end
-                if is_entity_a_miscprojectile(ENTITY.GET_ENTITY_MODEL(obj)) then --Mark Misc Projectiles
-                    if blip_projectiles then
-                        if blip_proj_misc then
-                            if HUD.GET_BLIP_FROM_ENTITY(obj) == 0 then
-                                local proj_blip_misc = HUD.ADD_BLIP_FOR_ENTITY(obj)
-                                HUD.SET_BLIP_SPRITE(proj_blip_misc, 364) --Misc Projectile Icon ID
-                                HUD.SET_BLIP_COLOUR(proj_blip_misc, proj_blip_misc_col)
-                                projectile_blips[#projectile_blips + 1] = proj_blip_misc 
-                            end
-                        end
-                    end
-                end
-                if l_e_o_on then
-                    local size = get_model_size(ENTITY.GET_ENTITY_MODEL(obj))
-                    if size.x > l_e_max_x or size.y > l_e_max_y or size.z > l_e_max_y then
-                        entities.delete_by_handle(obj)
-                    end
-                end
-                if object_rainbow then
-                    OBJECT._SET_OBJECT_LIGHT_COLOR(obj, 1, rgb[1], rgb[2], rgb[3])
                 end
             end
         end
@@ -1383,6 +1357,17 @@ menu.toggle_loop(MenuVehMovement, "Shift to Drift", {"csshifttodrift"}, "This wi
     end
 end)
 
+menu.toggle_loop(MenuVehMovement, "Nitrous", {"csnitrous"}, "Use your Standard Boost Keybind to Toggle Nitrous in any Car.", function(on)
+    if PED.IS_PED_IN_ANY_VEHICLE(players.user_ped(), true) and player_cur_car ~= 0 then
+        if PAD.IS_CONTROL_JUST_PRESSED(357, 357) then
+            request_ptfx_asset('veh_xs_vehicle_mods')  
+            VEHICLE.SET_OVERRIDE_NITROUS_LEVEL(player_cur_car, true, 100, 1, 99999999999, false)
+            repeat util.yield() until PAD.IS_CONTROL_JUST_PRESSED(357, 357)
+            VEHICLE.SET_OVERRIDE_NITROUS_LEVEL(player_cur_car, false, 0, 0, 0, false)
+        end
+    end
+end)
+
 menu.toggle_loop(MenuVehMovement, "Horn Boost", {"cshornboost"}, "Use your Horn Button to Boost your Car Forwards.", function(on)    
     if player_cur_car ~= 0 then
         VEHICLE.SET_VEHICLE_ALARM(player_cur_car, false)
@@ -1495,7 +1480,7 @@ menu.toggle_loop(MenuVehVisualMain, "True Rainbow Colours", {"cstruerainbow"}, "
     VEHICLE.SET_VEHICLE_NEON_COLOUR(player_cur_car, tr, tg, tb)
 end)
 
-menu.toggle_loop(MenuVehVisualMain, "Smooth True Rainbow", {"cssmoothrainbow"}, "Makes your Car Slowly Fade through Colours of the Rainbow.", function(on)    
+menu.toggle_loop(MenuVehVisualMain, "Smooth Rainbow", {"cssmoothrainbow"}, "Makes your Car Slowly Fade through Colours of the Rainbow.", function(on)    
     VEHICLE.SET_VEHICLE_CUSTOM_PRIMARY_COLOUR(player_cur_car, randR, randG, randB)
     VEHICLE.SET_VEHICLE_CUSTOM_SECONDARY_COLOUR(player_cur_car, randR, randG, randB)
     VEHICLE.SET_VEHICLE_NEON_COLOUR(player_cur_car, randR, randG, randB)
@@ -1905,20 +1890,6 @@ end)
 
 
 --[[| Vehicle/Other/Miscellaneous/ |]]--
-menu.toggle_loop(MenuVehOther, "Auto Claim MMI", {"csautommi"}, "Automatically Claims Destroyed Vehicles from MMI.", function()
-    local count = memory.read_int(memory.script_global(1585857))
-    for i = 0, count do
-        local canFix = (bitTest(memory.script_global(1585857 + 1 + (i * 142) + 103), 1) and bitTest(memory.script_global(1585857 + 1 + (i * 142) + 103), 2))
-        if canFix then
-            clearBit(memory.script_global(1585857 + 1 + (i * 142) + 103), 1)
-            clearBit(memory.script_global(1585857 + 1 + (i * 142) + 103), 3)
-            clearBit(memory.script_global(1585857 + 1 + (i * 142) + 103), 16)
-            util.toast("-Chalkscript-\n\nYour Personal Vehicle has been Destroyed. We have Claimed it Automatically.")
-        end
-    end
-    util.yield(100)
-end)
-
 menu.toggle_loop(MenuVehOther, "Horn Annoy", {"cshornannoy"}, "Swaps through Random Horns and Spams then. You can use this to Annoy People in Passive.", function(toggle)    
     if player_cur_car ~= 0 and  PED.IS_PED_IN_ANY_VEHICLE(players.user_ped(), true) then
         VEHICLE.SET_VEHICLE_MOD(player_cur_car, 14, math.random(0, 51), false)
@@ -2152,7 +2123,7 @@ blip_proj_bombs = false
 blip_proj_grenades = false
 blip_proj_mines = false
 blip_proj_misc = false
-menu.toggle(MenuWrldProjOptions, "Mark Projectiles", {"csmarkprojectiles"}, "This puts a Red Marker on Basically anthing that can Hurt you, and Moves Slow enough to Detect. This Includes stuff like Rockets, C4, Mines, etc.\nWill also Mark People with an Explo Sniper!", function(on)
+menu.toggle(MenuWrldProjOptions, "Mark Projectiles", {"csmarkprojectiles"}, "Puts a Marker on any Slow-Moving Projectile.\nThis includes things like C4, Proximity Mines, Missles, Etc.\nWill also Mark People using Explosive Rounds Under 'Misc' Category.", function(on)
     blip_projectiles = on
     mod_uses("object", if on then 1 else -1)
 end)
@@ -2184,8 +2155,8 @@ end)
 
 
 --[[| World/Projectile/ProjectileMarking/MarkProjectileColours/ |]]--
+proj_blip_missle_col = 75
 menu.slider(MenuWrldProjColours, "Missle Colour", {"csmarkmisslecol"}, "What Colour Missle Markers should be on the Map.\n\n0 - White\n1 - Red\n2 - Orange\n3 - Yellow\n4 - Green\n5 - Light Blue\n6 - Dark Blue", 0, 6, 0, 1, function(value)
-    proj_blip_missle_col = 75
     if value == 1 then proj_blip_missle_col = 75
     elseif value == 2 then proj_blip_missle_col = 47
     elseif value == 3 then proj_blip_missle_col = 46
@@ -2194,8 +2165,8 @@ menu.slider(MenuWrldProjColours, "Missle Colour", {"csmarkmisslecol"}, "What Col
     elseif value == 6 then proj_blip_missle_col = 78 end
 end)
 
+proj_blip_bomb_col = 75
 menu.slider(MenuWrldProjColours, "Bomb Colour", {"csmarkbombcol"}, "What Colour Bomb Markers should be on the Map.\n\n0 - White\n1 - Red\n2 - Orange\n3 - Yellow\n4 - Green\n5 - Light Blue\n6 - Dark Blue", 0, 6, 0, 1, function(value)
-    proj_blip_bomb_col = 75
     if value == 1 then proj_blip_bomb_col = 75
     elseif value == 2 then proj_blip_bomb_col = 47
     elseif value == 3 then proj_blip_bomb_col = 46
@@ -2204,8 +2175,8 @@ menu.slider(MenuWrldProjColours, "Bomb Colour", {"csmarkbombcol"}, "What Colour 
     elseif value == 6 then proj_blip_bomb_col = 78 end
 end)
 
+proj_blip_grenade_col = 75
 menu.slider(MenuWrldProjColours, "Grenade Colour", {"csmarkgrenadecol"}, "What Colour Grenade Markers should be on the Map.\n\n0 - White\n1 - Red\n2 - Orange\n3 - Yellow\n4 - Green\n5 - Light Blue\n6 - Dark Blue", 0, 6, 0, 1, function(value)
-    proj_blip_grenade_col = 75
     if value == 1 then proj_blip_grenade_col = 75
     elseif value == 2 then proj_blip_grenade_col = 47
     elseif value == 3 then proj_blip_grenade_col = 46
@@ -2214,8 +2185,8 @@ menu.slider(MenuWrldProjColours, "Grenade Colour", {"csmarkgrenadecol"}, "What C
     elseif value == 6 then proj_blip_grenade_col = 78 end
 end)
 
+proj_blip_mine_col = 75
 menu.slider(MenuWrldProjColours, "Mine Colour", {"csmarkminecol"}, "What Colour Mine Markers should be on the Map.\n\n0 - White\n1 - Red\n2 - Orange\n3 - Yellow\n4 - Green\n5 - Light Blue\n6 - Dark Blue", 0, 6, 0, 1, function(value)
-    proj_blip_mine_col = 75
     if value == 1 then proj_blip_mine_col = 75
     elseif value == 2 then proj_blip_mine_col = 47
     elseif value == 3 then proj_blip_mine_col = 46
@@ -2224,8 +2195,8 @@ menu.slider(MenuWrldProjColours, "Mine Colour", {"csmarkminecol"}, "What Colour 
     elseif value == 6 then proj_blip_mine_col = 78 end
 end)
 
+proj_blip_misc_col = 46
 menu.slider(MenuWrldProjColours, "Misc Colour", {"csmarkmisccol"}, "What Colour Misc Markers should be on the Map.\n\n0 - White\n1 - Red\n2 - Orange\n3 - Yellow\n4 - Green\n5 - Light Blue\n6 - Dark Blue", 0, 6, 0, 1, function(value)
-    proj_blip_misc_col = 46
     if value == 1 then proj_blip_misc_col = 75
     elseif value == 2 then proj_blip_misc_col = 47
     elseif value == 3 then proj_blip_misc_col = 46
@@ -2246,6 +2217,22 @@ slow_projectiles = false
 menu.toggle(MenuWrldProjMovement, "Slow Projectiles", {"csprojectileslow"}, "Makes All Projectiles move Extremely Slow.", function(on)
     slow_projectiles = on
     mod_uses("object", if on then 1 else -1)
+end)
+
+
+--[[| World/Chaos |]]--
+menu.toggle_loop(MenuWrldChaos, "Fling Vehicles", {"csflingvehicles"}, "Applies Random Velocities to every Vehicle.", function(on)
+    allVehicles = entities.get_all_vehicles_as_handles()
+    for k,obj in pairs(allVehicles) do
+        ENTITY.APPLY_FORCE_TO_ENTITY(obj, 1, math.random(0,3500), math.random(0,3500), math.random(0,3500), math.random(0,3500), math.random(0,3500), math.random(0,3500), 1, true, false, false, true, true)
+    end
+end)
+
+menu.toggle_loop(MenuWrldChaos, "Sieze Vehicles", {"cssiezevehicles"}, "Makes every Vehicle look like it's having a Seizure.", function(on)
+    allVehicles = entities.get_all_vehicles_as_handles()
+    for k,obj in pairs(allVehicles) do
+        ENTITY.APPLY_FORCE_TO_ENTITY(obj, 1, math.random(0,100), math.random(0,100), math.random(0,100), math.random(0,100), math.random(0,100), math.random(0,100), 1, true, false, false, true, true)
+    end
 end)
 
 
@@ -2762,8 +2749,8 @@ end)
 --[[| Chalkscript/ |]]--
 menu.divider(MenuCredits, "--- MAIN DEVELOPERS ---")
 
-menu.action(MenuCredits, "Гадюка#3642", {"cscreditsviper"}, "This is Me, and I did Everything, from Scratch.", function(on_click)
-    util.toast("- Гадюка#3642 -\n\nThis is Me, and I did Everything, from Scratch.")
+menu.action(MenuCredits, "Ð“Ð°Ð´ÑŽÐºÐ°#3642", {"cscreditsviper"}, "This is Me, and I did Everything, from Scratch.", function(on_click)
+    util.toast("- Ð“Ð°Ð´ÑŽÐºÐ°#3642 -\n\nThis is Me, and I did Everything, from Scratch.")
 end)
 
 menu.divider(MenuCredits, "--- GAVE IDEAS ---")
