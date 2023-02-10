@@ -1,10 +1,10 @@
 util.require_natives("1672190175")
 
-PatchNoteFixed = "\tTrue RGB\n\tSmooth RGB\n\tFaster Projectile Marking\n\t/Vehicle/Other/Auto Claim MMI; Removed, Patched"
-PatchNoteAdded = "\t/Vehicle/Movement/Nitrous" 
+PatchNoteFixed = "\n[/Player/Killing/<Owned/Anonymous>/Snipe Player]; More Accurate\n\tRemoved [/Self/Weapons/SRANP/]; Useless"
+PatchNoteAdded = "\t[/Self/Weapons/Silent Aim]; Finally Did it" 
 
 local response = false
-local localVersion = 5.41
+local localVersion = 5.42
 local currentVersion
 async_http.init("raw.githubusercontent.com", "/ViperOne1/Chalkscript/main/raw/version", function(output)
     currentVersion = tonumber(output)
@@ -390,6 +390,31 @@ function GetClosestPlayerWithRange_Whitelist(range, inair)
     end
 end
 
+local function GetSilentAimTarget()
+    local dist = 1000000000
+    local target = 0
+    for k,v in pairs(entities.get_all_peds_as_handles()) do
+        local returnTarget = true
+        local localPos = players.get_position(players.user())
+        local iPedPos = ENTITY.GET_ENTITY_COORDS(v, true)
+        local distanceLocalTarget = MISC.GET_DISTANCE_BETWEEN_COORDS(localPos['x'], localPos['y'], localPos['z'], iPedPos['x'], iPedPos['y'], iPedPos['z'], true)
+        if players.user_ped() ~= v and not ENTITY.IS_ENTITY_DEAD(v) and ENTITY.HAS_ENTITY_CLEAR_LOS_TO_ENTITY(players.user_ped(), v, 17) then
+            if not PED.IS_PED_FACING_PED(players.user_ped(), v, sAimFov) then
+                returnTarget = false
+            end
+            if silentAimMode == "closest" then
+                if distanceLocalTarget <= dist and PED.IS_PED_A_PLAYER(v) then
+                    if returnTarget then
+                        dist = distanceLocalTarget
+                        target = v
+                    end
+                end
+            end 
+        end
+    end
+    return target
+end
+
 function GetClosestVehicleNodeWithHeading(x, y, z, nodeType)
     local outpos = v3.new()
     local outHeading = memory.alloc()
@@ -679,8 +704,8 @@ MenuSelf = menu.list(menu.my_root(), "Self", {""}, "Self Options.") ; menu.divid
     MenuHealth = menu.list(MenuSelf, "Health", {""}, "Health Options.") ; menu.divider(MenuHealth, "--- Health Options ---")
     MenuWeapon = menu.list(MenuSelf, "Weapon", {""}, "Weapon Options.") ; menu.divider(MenuWeapon, "--- Weapon Options ---")
         MenuWeaponHotswap = menu.list(MenuWeapon, "Hotswap", {""}, "Weapon Hotswap Options.") ; menu.divider(MenuWeaponHotswap, "--- Hotswap Options ---")
+        MenuWeaponSAim = menu.list(MenuWeapon, "Silent Aimbot", {""}, "Silent Aimbot Options.") ; menu.divider(MenuWeaponSAim, "--- Silent Aimbot Options ---")
         MenuWeaponQR = menu.list(MenuWeapon, "Quick Rocket", {""}, "Quick Rocket Options.") ; menu.divider(MenuWeaponQR, "--- Quick Rocket Options ---")
-        MenuWeaponSRANP = menu.list(MenuWeapon, "SRANP", {""}, "Shoot Rocket at Nearest Player Options.") ; menu.divider(MenuWeaponSRANP, "--- SRANP Options ---")
         MenuWeaponGuidedM = menu.list(MenuWeapon, "Missle Guidance", {""}, "Missle Guidance Options.") ; menu.divider(MenuWeaponGuidedM, "--- Missle Guidance Options ---")
             MenuWeaponMA = menu.list(MenuWeaponGuidedM, "Missle Aimbot", {""}, "Missle Aimbot Options.") ; menu.divider(MenuWeaponMA, "--- Missle Aimbot Options ---")
             MenuWeaponMCLOS = menu.list(MenuWeaponGuidedM, "MCLOS", {""}, "MCLOS Guided Missle Options.") ; menu.divider(MenuWeaponMCLOS, "--- MCLOS Options ---")
@@ -1181,6 +1206,37 @@ menu.slider(MenuWeaponHotswap, "Hotswap Delay", {"cshotswapdelay"}, "The Delay B
 end)
 
 
+--[[| Self/Weapon/SilentAimbot/ |]]--
+silentAimMode = "closest"
+menu.toggle_loop(MenuWeaponSAim, "Silent Aimbot", {"cssilentaim"}, "Aimbots Players with out actually Snapping your Camera to them.", function(toggle)
+    local target = GetSilentAimTarget()
+    if target ~= 0 then
+        local localPedPos = ENTITY.GET_ENTITY_COORDS(players.user_ped(), false)
+        local targetPos = PED.GET_PED_BONE_COORDS(target, 24817, 0, 0.5, 0)
+        local targetPos2 = PED.GET_PED_BONE_COORDS(target, 24817, 0, 0, 0.00)
+        if showSAimTarget then
+            GRAPHICS.DRAW_LINE(localPedPos['x'], localPedPos['y'], localPedPos['z'], targetPos['x'], targetPos['y'], targetPos['z'], 255, 0, 0, 150)
+        end
+        if PED.IS_PED_SHOOTING(players.user_ped()) then
+            local wep = WEAPON.GET_SELECTED_PED_WEAPON(players.user_ped())
+            local dmg = WEAPON.GET_WEAPON_DAMAGE(wep, 0)
+            local veh = PED.GET_VEHICLE_PED_IS_IN(target, false)
+            MISC.SHOOT_SINGLE_BULLET_BETWEEN_COORDS_IGNORE_ENTITY(targetPos['x'], targetPos['y'], targetPos['z'], targetPos2['x'], targetPos2['y'], targetPos2['z'], dmg, true, wep, players.user_ped(), true, false, 10000, veh)
+        end
+    end
+end)
+
+sAimFov = 15
+menu.slider(MenuWeaponSAim, "Silent Aim FoV", {"cssilentaimfov"}, "The FoV that the Silent Aimbot will Target Players in.", 1, 270, 15, 1, function(value)
+    sAimFov = value
+end)
+
+showSAimTarget = on
+menu.toggle(MenuWeaponSAim, "Show Target", {"cssilentaimdisplaytarget"}, "Wether or not to Show the Person who is Currently being Targeted.", function(on)
+    showSAimTarget = on
+end, true)
+
+
 --[[| Self/Weapon/Quickrocket/ |]]--
 menu.action(MenuWeaponQR, "Quick Rocket", {"csquickrocket"}, "This will Switch to the Homing Launcher, Wait until you Shoot, then Switch back.", function(on_click)
     local localped = players.user_ped()
@@ -1210,30 +1266,6 @@ menu.slider(MenuWeaponQR, "Quick Rocket Mode", {"csquickrocketmode"}, "Wether to
     if value == 1 then LegitSwitchB1 = true ; LegitSwitchB2 = true
     elseif value == 2 then LegitSwitchB1 = false ; LegitSwitchB2 = true
     elseif value == 3 then LegitSwitchB1 = false ; LegitSwitchB2 = false end 
-end)
-
-
---[[| Self/Weapon/SRANP/ |]]--
-menu.action(MenuWeaponSRANP, "Shoot Rocket at Nearest Player", {"cssranp"}, "Spawns a Rocket near you that goes to the Nearest Player.\nLess Legit Alternative to 'Shoot Rocket'.", function(on_click)
-    local UserPedOffset = ENTITY.GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(players.user_ped(), 0, -1, .35)   
-    local NearestPlayer = GetClosestPlayerWithRange(SRANP_Range)
-    local TargetLead = 1.6 * ENTITY.GET_ENTITY_SPEED(NearestPlayer)  
-    local NearestplayerCoord = ENTITY.GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(NearestPlayer, 0, 0, 0)
-    local NearestPlayerLeadCoord = ENTITY.GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(NearestPlayer, 0, TargetLead, 0)
-    if NearestPlayer ~= players.user_ped() then
-        if ENTITY.GET_ENTITY_SPEED(NearestPlayer) > 1 then
-            MISC.SHOOT_SINGLE_BULLET_BETWEEN_COORDS(UserPedOffset['x'], UserPedOffset['y'], UserPedOffset['z'], NearestPlayerLeadCoord['x'], NearestPlayerLeadCoord['y'], NearestPlayerLeadCoord['z'], 100, true, 1672152130, players.user_ped(), true, false, 1000)
-        else
-            MISC.SHOOT_SINGLE_BULLET_BETWEEN_COORDS(UserPedOffset['x'], UserPedOffset['y'], UserPedOffset['z'], NearestPlayerLeadCoord['x'], NearestPlayerLeadCoord['y'], NearestPlayerLeadCoord['z'], 100, true, 1672152130, players.user_ped(), true, false, 1000)
-        end
-    else
-        util.toast("-Chalkscript-\n\nCould not find Nearest Target within the given Range.")
-    end
-end)
-
-SRANP_Range = 500
-menu.slider(MenuWeaponSRANP, "SRANP Range", {"cssranprange"}, "The Range at which 'SRANP' will Detect Players, and choose the Closest one out of them.", 50, 5000, 500, 10, function(value)
-    SRANP_Range = value
 end)
 
 
@@ -1595,13 +1627,31 @@ menu.click_slider(MenuHeli, "Heli Power", {"cshelipower"}, "Increases or Decreas
     end
 end)
 
-menu.action(MenuHeli, "Disable Auto-Stabilization", {"csnohelistabalize"}, "Clicking this will Disable Helicopter Auto-Stabilization on a Per-Heli Basis.\nThis works for other Vehicles with VTOL Capabilities, but is a Little Glitchy.", function ()
+menu.toggle(MenuHeli, "Disable Auto-Stabilization", {"csnohelistabalize"}, "Clicking this will Disable Helicopter Auto-Stabilization on a Per-Heli Basis.\nThis works for other Vehicles with VTOL Capabilities, but is a Little Glitchy.", function(on)
     local CflyingHandling = get_sub_handling_types(entities.get_user_vehicle_as_handle(), 1)
+    handlingValues = {}
     if CflyingHandling then
-        for _, offset in pairs(better_heli_handling_offsets) do
-            memory.write_float(CflyingHandling + offset, 0)
+        inc=1
+        if on then
+            for i, offset in pairs(better_heli_handling_offsets) do
+                handlingValues[inc] = memory.read_float(CflyingHandling+offset)
+                util.toast(handlingValues[inc])
+                inc=inc+1
+            end
+            inc=1
+            for i, offset in pairs(better_heli_handling_offsets) do
+                memory.write_float(CflyingHandling + offset, 0)
+            end
+            util.toast("-Chalkscript-\n\nHeli Auto-Stabilization has been Disabled.")
+        else
+            util.toast(handlingValues[1])
+            for i, offset in pairs(better_heli_handling_offsets) do
+                memory.write_float(CflyingHandling+offset, handlingValues[inc])
+                inc=inc+1
+            end
+            inc=1
+            util.toast("-Chalkscript-\n\nHeli Auto-Stabilization has been Enabled.")
         end
-        util.toast("-Chalkscript-\n\nHeli Auto-Stabilization has been Disabled.\nRelease your inner Battlefield 4!")
     else util.toast("-Chalkscript-\n\nCould not Disable Auto-Stabilization.\nGet in a Heli First!") end
 end)
 
@@ -1614,7 +1664,7 @@ end)
 
 --[[| Vehicle/Main/Aircraft/Universal/ |]]--
 aircraftAimbotAnyVehicle = false
-menu.toggle_loop(MenuAircraftUniversal, "Aircraft Aimbot", {"csaircraftaimbot"}, "Makes any Aircraft Snap Directly to the Nearest Person. Does not look Legit, as it uses 'SET_ENTITY_ROTATION' and isn't Smooth!", function ()
+menu.toggle_loop(MenuAircraftUniversal, "Aircraft Aimbot", {"csaircraftaimbot"}, "Makes any Aircraft Snap Directly to the Nearest Person.", function ()
     local p = GetClosestPlayerWithRange_Whitelist(200)
     local localped = players.user_ped()
     local localcoords2 = ENTITY.GET_ENTITY_COORDS(localped)
@@ -2963,7 +3013,7 @@ function PlayerAddRoot(csPID)
         util.yield(500)
         local pidPed = PLAYER.GET_PLAYER_PED_SCRIPT_INDEX(csPID)
         local onPed = ENTITY.GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(pidPed, 0, 0, .5)
-        local frontOfPed = ENTITY.GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(pidPed, 0, 5, 1)
+        local frontOfPed = ENTITY.GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(pidPed, 0, .8, 1)
         MISC.SHOOT_SINGLE_BULLET_BETWEEN_COORDS(frontOfPed.x, frontOfPed.y, frontOfPed.z, onPed.x, onPed.y, onPed.z, 350, true, 205991906, players.user_ped(), true, false, 100) --205991906 is Heavy Sniper 
         menu.trigger_command(menu.ref_by_path("Players>"..players.get_name_with_tags(csPID)..">Spectate>Legit Method", 33))
         util.yield(500)
@@ -3038,7 +3088,7 @@ function PlayerAddRoot(csPID)
         for k, ent in pairs(entities.get_all_peds_as_handles()) do
             if not PED.IS_PED_A_PLAYER(ent) and ENTITY.HAS_ENTITY_CLEAR_LOS_TO_ENTITY(ent, pidPed, 17) then
                 local onPed = ENTITY.GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(pidPed, 0, 0, .5)
-                local frontOfPed = ENTITY.GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(pidPed, 0, 5, 1)
+                local frontOfPed = ENTITY.GET_OFFSET_FROM_ENTITY_IN_WORLD_COORDS(pidPed, 0, .8, 1)
                 MISC.SHOOT_SINGLE_BULLET_BETWEEN_COORDS(frontOfPed.x, frontOfPed.y, frontOfPed.z, onPed.x, onPed.y, onPed.z, 3500, true, 205991906, ent, true, false, 100) --205991906 is Heavy Sniper 
                 break
             end
