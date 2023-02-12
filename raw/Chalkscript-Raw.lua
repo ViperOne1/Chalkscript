@@ -1,10 +1,10 @@
 util.require_natives("1672190175")
 
-PatchNoteFixed = "\n[/Player/Killing/<Owned/Anonymous>/Snipe Player]; More Accurate\n\tRemoved [/Self/Weapons/SRANP/]; Useless"
-PatchNoteAdded = "\t[/Self/Weapons/Silent Aim]; Finally Did it" 
+PatchNoteFixed = "\t[/Vehicle/Main/Aircraft/Helicopter/DisableAutoStabilization]; Fixed Errors when Turning off."
+PatchNoteAdded = "\tNone" 
 
 local response = false
-local localVersion = 5.42
+local localVersion = 5.43
 local currentVersion
 async_http.init("raw.githubusercontent.com", "/ViperOne1/Chalkscript/main/raw/version", function(output)
     currentVersion = tonumber(output)
@@ -477,16 +477,7 @@ get_sub_handling_types = function(vehicle, type)
     if type then return nil else return types end
 end
 local thrust_offset = 0x8
-local better_heli_handling_offsets = {
-    ["fYawMult"] = 0x18,
-    ["fYawStabilise"] = 0x20, 
-    ["fSideSlipMult"] = 0x24, 
-    ["fRollStabilise"] = 0x30, 
-    ["fAttackLiftMult"] = 0x48, 
-    ["fAttackDiveMult"] = 0x4C, 
-    ["fWindMult"] = 0x58, 
-    ["fPitchStabilise"] = 0x3C 
-}
+local heliHandlingOffsets = {0x18,0x20, 0x24, 0x30, 0x48, 0x4C, 0x58, 0x3C}
 
 --Defining What is a Projectile
 local function is_entity_a_projectile_all(hash)     -- All Projectile Offests
@@ -613,7 +604,7 @@ function player_toggle_loop(root, pid, menu_name, command_names, help_text, call
     end)
 end
 
-function getPlayerRegType(pid) --[[-1 = No Reg / 0 = CEO / 1 = MC]]
+function getPlayerRegType(pid)
     local boss = players.get_boss(pid)
     if boss ~= -1 then
         return memory.read_int(memory.script_global(1892703+1+boss*599+(10+428)))
@@ -1208,7 +1199,7 @@ end)
 
 --[[| Self/Weapon/SilentAimbot/ |]]--
 silentAimMode = "closest"
-menu.toggle_loop(MenuWeaponSAim, "Silent Aimbot", {"cssilentaim"}, "Aimbots Players with out actually Snapping your Camera to them.", function(toggle)
+menu.toggle_loop(MenuWeaponSAim, "Silent Aimbot", {"cssilentaim"}, "Aimbots Players without actually Snapping your Camera to them.", function(toggle)
     local target = GetSilentAimTarget()
     if target ~= 0 then
         local localPedPos = ENTITY.GET_ENTITY_COORDS(players.user_ped(), false)
@@ -1233,7 +1224,7 @@ end)
 
 showSAimTarget = on
 menu.toggle(MenuWeaponSAim, "Show Target", {"cssilentaimdisplaytarget"}, "Wether or not to Show the Person who is Currently being Targeted.", function(on)
-    showSAimTarget = on
+    if on then showSAimTarget = on else showSAimTarget = false end
 end, true)
 
 
@@ -1617,9 +1608,9 @@ end)
 --[[| Vehicle/Main/Aircraft/Helicopter/ |]]--
 menu.click_slider(MenuHeli, "Heli Power", {"cshelipower"}, "Increases or Decreased the Helicopter Thrust.\nDefault is 50", 0, 1000, 50, 10, function (value)
     if player_cur_car ~= 0 then
-        local CflyingHandling = get_sub_handling_types(entities.get_user_vehicle_as_handle(), 1)
-        if CflyingHandling then
-            memory.write_float(CflyingHandling + thrust_offset, value * 0.01)
+        local heliHandlingBase = get_sub_handling_types(entities.get_user_vehicle_as_handle(), 1)
+        if heliHandlingBase then
+            memory.write_float(heliHandlingBase + thrust_offset, value * 0.01)
             util.toast("-Chalkscript-\n\nHelicopter Power set to "..value)
         else
             util.toast("-Chalkscript-\n\nCould not Change Thrust Power.\nGet in a Heli First!")
@@ -1627,32 +1618,32 @@ menu.click_slider(MenuHeli, "Heli Power", {"cshelipower"}, "Increases or Decreas
     end
 end)
 
-menu.toggle(MenuHeli, "Disable Auto-Stabilization", {"csnohelistabalize"}, "Clicking this will Disable Helicopter Auto-Stabilization on a Per-Heli Basis.\nThis works for other Vehicles with VTOL Capabilities, but is a Little Glitchy.", function(on)
-    local CflyingHandling = get_sub_handling_types(entities.get_user_vehicle_as_handle(), 1)
-    handlingValues = {}
-    if CflyingHandling then
-        inc=1
+local toggle=false
+menuHeliStabalizeToggle = menu.toggle(MenuHeli, "Disable Auto-Stabilization", {"csnohelistabalize"}, "Disables Helicopter Auto-Stabilization.", function(on)
+    if toggle==false then toggle=true elseif toggle==true then toggle=false end
+    local currentHeli = player_cur_car
+    local heliHandlingBase = get_sub_handling_types(entities.get_user_vehicle_as_handle(), 1)
+    local handlingValues = {}
+    if heliHandlingBase and VEHICLE.GET_VEHICLE_CLASS(player_cur_car) == 15 then
         if on then
-            for i, offset in pairs(better_heli_handling_offsets) do
-                handlingValues[inc] = memory.read_float(CflyingHandling+offset)
-                util.toast(handlingValues[inc])
-                inc=inc+1
-            end
-            inc=1
-            for i, offset in pairs(better_heli_handling_offsets) do
-                memory.write_float(CflyingHandling + offset, 0)
-            end
+            for i, offset in pairs(heliHandlingOffsets) do handlingValues[i] = memory.read_float(heliHandlingBase+offset) end
+            for i, offset in pairs(heliHandlingOffsets) do memory.write_float(heliHandlingBase + offset, 0) end
             util.toast("-Chalkscript-\n\nHeli Auto-Stabilization has been Disabled.")
-        else
-            util.toast(handlingValues[1])
-            for i, offset in pairs(better_heli_handling_offsets) do
-                memory.write_float(CflyingHandling+offset, handlingValues[inc])
-                inc=inc+1
+            repeat 
+                if player_cur_car ~= currentHeli then 
+                    playerChangedVehicle = true
+                    break
+                else util.yield() end 
+            until not toggle
+            for i, offset in pairs(heliHandlingOffsets) do memory.write_float(heliHandlingBase+offset, handlingValues[i]) end
+            if not playerChangedVehicle then util.toast("-Chalkscript-\n\nHeli Auto-Stabilization has been Enabled.") else
+                util.toast("-Chalkscript-\n\nReset Heli Auto-Stabilization due to Vehicle Change.")
+                menu.trigger_command(menuHeliStabalizeToggle, "off")
+                util.yield(100)
+                playerChangedVehicle = false
             end
-            inc=1
-            util.toast("-Chalkscript-\n\nHeli Auto-Stabilization has been Enabled.")
         end
-    else util.toast("-Chalkscript-\n\nCould not Disable Auto-Stabilization.\nGet in a Heli First!") end
+    elseif not playerChangedVehicle then util.toast("-Chalkscript-\n\nCould not Disable Auto-Stabilization.\nGet in a Heli First!") end
 end)
 
 menu.toggle_loop(MenuHeli, "Instant Engine Startup", {"csinstantheliengine"}, "When Active, Helicopter Engines will Instantly Spin up to Full RPM.", function(on)
