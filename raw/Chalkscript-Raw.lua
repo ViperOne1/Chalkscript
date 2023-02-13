@@ -1,10 +1,10 @@
 util.require_natives("1672190175")
 
-PatchNoteFixed = "\t[/Vehicle/Main/Aircraft/Helicopter/DisableAutoStabilization]; Fixed Errors when Turning off."
-PatchNoteAdded = "\tNone" 
+PatchNoteFixed = "\tNone"
+PatchNoteAdded = "\t[/Self/Weapon/SilentAimbot/Autoshoot]\n\t[/Self/Weapon/SilentAimbot/SilentAimMode]" 
 
 local response = false
-local localVersion = 5.43
+local localVersion = 5.44
 local currentVersion
 async_http.init("raw.githubusercontent.com", "/ViperOne1/Chalkscript/main/raw/version", function(output)
     currentVersion = tonumber(output)
@@ -1203,18 +1203,31 @@ menu.toggle_loop(MenuWeaponSAim, "Silent Aimbot", {"cssilentaim"}, "Aimbots Play
     local target = GetSilentAimTarget()
     if target ~= 0 then
         local localPedPos = ENTITY.GET_ENTITY_COORDS(players.user_ped(), false)
-        local targetPos = PED.GET_PED_BONE_COORDS(target, 24817, 0, 0.5, 0)
-        local targetPos2 = PED.GET_PED_BONE_COORDS(target, 24817, 0, 0, 0.00)
+        local localHeadPos = PED.GET_PED_BONE_COORDS(players.user_ped(), 31086, 0, 0, 0)
+        local targetPos = PED.GET_PED_BONE_COORDS(target, 24818, 0, .5, 0)
+        local targetPos2 = PED.GET_PED_BONE_COORDS(target, 24818, 0, 0, 0)
         if showSAimTarget then
-            GRAPHICS.DRAW_LINE(localPedPos['x'], localPedPos['y'], localPedPos['z'], targetPos['x'], targetPos['y'], targetPos['z'], 255, 0, 0, 150)
+            GRAPHICS.DRAW_LINE(localPedPos['x'], localPedPos['y'], localPedPos['z'], targetPos2['x'], targetPos2['y'], targetPos2['z'], 255, 0, 0, 150)
+        end
+        if sAimAutoShoot then
+            PAD.SET_CONTROL_VALUE_NEXT_FRAME(24, 24, 1.0)
         end
         if PED.IS_PED_SHOOTING(players.user_ped()) then
             local wep = WEAPON.GET_SELECTED_PED_WEAPON(players.user_ped())
             local dmg = WEAPON.GET_WEAPON_DAMAGE(wep, 0)
             local veh = PED.GET_VEHICLE_PED_IS_IN(target, false)
-            MISC.SHOOT_SINGLE_BULLET_BETWEEN_COORDS_IGNORE_ENTITY(targetPos['x'], targetPos['y'], targetPos['z'], targetPos2['x'], targetPos2['y'], targetPos2['z'], dmg, true, wep, players.user_ped(), true, false, 10000, veh)
+            if sAimMode == 1 then
+                MISC.SHOOT_SINGLE_BULLET_BETWEEN_COORDS_IGNORE_ENTITY(targetPos['x'], targetPos['y'], targetPos['z'], targetPos2['x'], targetPos2['y'], targetPos2['z'], dmg, true, wep, players.user_ped(), true, false, 100, veh)
+            else
+                MISC.SHOOT_SINGLE_BULLET_BETWEEN_COORDS_IGNORE_ENTITY(localHeadPos['x'], localHeadPos['y'], localHeadPos['z'], targetPos2['x'], targetPos2['y'], targetPos2['z'], dmg, true, wep, players.user_ped(), true, false, 100, veh)
+            end
         end
     end
+end)
+
+sAimMode = 1
+menu.slider(MenuWeaponSAim, "Silent Aim Mode", {"cssilentaimmode"}, "The Mode in which Silent Aimbot will Shoot the Bullet.\n\n1 - The Bullet will Spawn in Front of the Player and Hit them. Tends to Miss Players in Vehicles.\n\n2 - The Bullet will Spawn on your Player and go to the Target.", 1, 2, 1, 1, function(value)
+    sAimMode = value
 end)
 
 sAimFov = 15
@@ -1222,10 +1235,15 @@ menu.slider(MenuWeaponSAim, "Silent Aim FoV", {"cssilentaimfov"}, "The FoV that 
     sAimFov = value
 end)
 
-showSAimTarget = on
+sAimAutoShoot = false
+menu.toggle(MenuWeaponSAim, "Autoshoot", {"cssilentaimautoshoot"}, "Automatically Shoots when Silent Aim gets a Target.", function(on)
+    if sAimAutoShoot == false then sAimAutoShoot = true else sAimAutoShoot = false end
+end)
+
+showSAimTarget = false
 menu.toggle(MenuWeaponSAim, "Show Target", {"cssilentaimdisplaytarget"}, "Wether or not to Show the Person who is Currently being Targeted.", function(on)
-    if on then showSAimTarget = on else showSAimTarget = false end
-end, true)
+    if showSAimTarget == false then showSAimTarget = true else showSAimTarget = false end
+end)
 
 
 --[[| Self/Weapon/Quickrocket/ |]]--
